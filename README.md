@@ -1,6 +1,6 @@
 # Прогресс/План
-- описан в ветке dev\
- в файле main.py - незакоменченным 
+- описан в **ветке dev**\
+ в файле **main.py - незакоменченным** 
 
 # Documentation:
  - each file has **doc-string at top** - short summary
