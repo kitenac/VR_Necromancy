@@ -7,7 +7,7 @@
  - /docs, /redoc - auto docummentation for HTTP methods and schemas 
 
 # Frontend image
-https://hub.docker.com/repository/docker/albanec7/vr-pharmacy-client/general\
+https://hub.docker.com/repository/docker/albanec7/vr-pharmacy-client/general \
 tag for my backend: PATCHED_API_ADDR
 
 - if u want to specify different src API - follow PATCH section in dockerhub repo above 
@@ -29,7 +29,7 @@ tag for my backend: PATCHED_API_ADDR
  via 0.0.0.0:\
  cd ./vr_app \
  [recomended] <use venv>\
- uvicorn main:vr_app --host 0.0.0.0 --port 8001 \
+ uvicorn main:vr_app --host 0.0.0.0 --port 8001 
 
 - Windows (cmd):\
   serv is accessed via 127.0.0.1:8001 
