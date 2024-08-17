@@ -25,7 +25,7 @@ import CRUD # http methods` handlers
 from db_conf import get_db_session
 
 
-'''
+
 План:
  I. Учимся какать
     
