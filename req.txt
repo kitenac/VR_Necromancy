@@ -1,0 +1,6 @@
+fastapi
+"fastapi[standard]" # for documentation run with "fastapi dev main.py"
+uvicorn
+sqlalchemy
+pymysql
+cryptography # establish qsl connection
