@@ -3,4 +3,5 @@ fastapi
 uvicorn
 sqlalchemy
 pymysql
+asyncmy  # for async mysql
 cryptography # establish qsl connection

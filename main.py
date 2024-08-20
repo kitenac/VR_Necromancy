@@ -15,17 +15,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-import uuid
 import logging 
-from typing import Optional, List # annotations for dictionaries
+from typing import Optional, List 
 
 import schemas # data schemas
 import CRUD # http methods` handlers
-from db_conf import get_db_session
+from db_conf import get_db_session, init_db
 
 
-
+'''
 План:
  I. Учимся какать
     
@@ -56,7 +56,12 @@ from db_conf import get_db_session
   +  Delete, Update добавть      
 
   >>>> CURRENT >>>>  
-
+    >>> +/- Ещё дату created_at нигде не добавил !!! - мб от общего объекта наследовать переиспользлвать
+      - добавил автополя created_at, updated_at - они генерятся, как надо (В ответе добавления), НО
+      - после обновления страницы - null`ы
+      - schema pydentic - переписывает поля из model почему-то - 
+      >>> Узнать, как это исправить/жить с этим - мб загуглить pydentic + autogenerating fields
+      
   >>> методы /redo - автоматизировать
   >>> CRUDб main раздуло слишком - создай папку отдельную и по разным файлам разбей, а CRUD.py - их агрегатором пусть будет 
   >>> Разобраться, как работает автозакрытие сессий и Depends:
@@ -75,7 +80,6 @@ from db_conf import get_db_session
     ):
     # some logic
     
-  >>> Ещё дату created_at нигде не добавил !!! - мб от общего объекта наследовать переиспользлвать
   >>> БД - students_count автоматически считать мб можно - COUNT (STUDENTS: id == id)
       - это называется триггер) - есть смысл для надёжности использовать его
 
@@ -114,7 +118,8 @@ from db_conf import get_db_session
   5) валидировать ввод форм при создании/редактировании, а ещё поиск - чтоб SQL-инъекций не было  
     - email валидировать точно: not null (by model) + regexp
     - full_name для студентов - чтоб 3 слова было в строке
-    
+
+  *) мб тестами покрыть методы - pytest и логгирование добавить - sentry (5 строк кода и на их фронте есть всевозможная аналитика с дашбордами)
   *) рефакторинг 
     - разбить schemas, 
     
@@ -124,11 +129,15 @@ from db_conf import get_db_session
     - читаемость повысить, добавить ООП-патернов
   **) что-то со скоростью создания сделать - ооочень долго идёт, мб с сессиями что или сервер с uvicorn сменить, мб параметры сервера покрутить - ресурсов юольше дать
     
-  1000) !!! Dockerfile написать и закинуть Image на DockerHub 
+  1000) !!! Dockerfile приложения написать и закинуть Image на DockerHub 
+        + DockerCompose - чтоб БД тоже была
+  *) есть бесплатные хостинги - можно туда залить
   
   III. Когда всё готово  
   Приложение функционирует, как раньше, всё круто,НО, 
   надо его облагородить:
+    0) Redis подключить, в Fastapi достаточно декоратор будет навесить функциям: 6:20
+        https://www.youtube.com/watch?v=Kr-V4IgJFes
     1) разделить приложение на два микросервиса (две отдельные кодовые бызы)
        как вариант на:
        - квесты 
@@ -141,9 +150,11 @@ from db_conf import get_db_session
     3) а теперь связать их через Kafka
     
     **) Пополнение Зоопарка:
-        - Redis добавить для кэша - мб хранить там квесты
-        - Elastic search mb для методов /search использовать
-        - Logging - 
+        celery - для управления асинхронными запросами (нагрузку можно эмииовать)
+         - для create методов пригодится - см. TODO в crud/create()
+        много других классных идей со ссылками:
+        https://www.youtube.com/watch?v=Kr-V4IgJFes
+        - Logging 
     ***) Добавить бинарных файлов 
         - отдельный микросервис под работу с бинарями
           * на GRPC/SOAP сделать
@@ -187,23 +198,6 @@ vr_app.add_middleware(
 
 # ====  HTTPException handling
 
-''' [Explain of decorator logic]
-
-Объяснение декораторов в фреймворках - откуда там параметры 
-- коротко: мы всё также вызываем функцию(функцию-генератор), только теперь это функция, сгенерированная функцией от параметров 
-
-Код:
-  vr_app = FastAPI()
-
-  @vr_app.post('/groups/search', summary='View groups')
-  def my_fun(...)
-	  pass
-
-благодаря my_fun() ты определяешь, как будет себя вести POST функция, сгенерированная вызовом метода .post приложения vr_app (объекта FastApi):
-vr_app.post('/groups/search', summary='View groups')
-- т.е. метод post в FastApi - генератор функций POST
-'''
-
 # TODO: upgrade, mb
 @vr_app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, e: HTTPException):
@@ -219,6 +213,7 @@ async def http_exception_handler(request: Request, e: HTTPException):
 
 
 
+
 # ==== Search: pagination + filtering + sorting
 @vr_app.post('/groups/search', summary='View groups')
 async def groups_search(
@@ -228,13 +223,13 @@ async def groups_search(
     limit: int = 10,
     page: int = 1,
     order: list[str] = Query(['id'], alias='order[]'),
-    SessionLocal: Session = Depends(get_db_session) # connect to DB
+    SessionLocal: AsyncSession = Depends(get_db_session) # connect to DB
   ):
     '''                       (Docs)
       Get all groups
       - TODO: pagination
     '''
-    
+    #await init_db()
     params = schemas.RequestQuery(limit=limit, page=page, order=order)
     return await CRUD.search_groups(SessionLocal, params=params, filter=filter)
         
@@ -248,7 +243,7 @@ async def students_search(
     limit: int = 10,
     page: int = 1,
     order: list[str] = Query(['id'], alias='order[]'),
-    SessionLocal: Session = Depends(get_db_session) # connect to DB
+    SessionLocal: AsyncSession = Depends(get_db_session) # connect to DB
 ):
     '''                       (Docs)
       Get all students of chosen group,
@@ -267,24 +262,24 @@ async def students_search(
 async def students_create(
     name: str = Body(),
     email: str = Body(),
-    SessionLocal: Session = Depends(get_db_session) # connect to DB
+    SessionLocal: AsyncSession = Depends(get_db_session) # connect to DB
 ):
     '''                       (Docs)
       Create a new group 
     '''
-    group = schemas.Group(id=uuid.uuid4().hex, name=name, email=email, students_count=0)
+    group = schemas.Group(name=name, email=email)
     return await CRUD.create_group(db=SessionLocal, group=group)
 
 @vr_app.post('/students', summary='Add student')
 async def students_create(
     full_name: str = Body(),
     group_id: str = Body(),
-    SessionLocal: Session = Depends(get_db_session) # connect to DB
+    SessionLocal: AsyncSession = Depends(get_db_session) # connect to DB
 ):
     '''                       (Docs)
       Create new student 
     '''
-    student = schemas.Student(id=uuid.uuid4().hex, group_id=group_id, full_name=full_name)
+    student = schemas.Student(group_id=group_id, full_name=full_name)
     return await CRUD.create_student(db=SessionLocal, student=student)
 
 # ==== Delete. 
@@ -292,7 +287,7 @@ async def students_create(
 @vr_app.delete('/groups/{id}', status_code=200, summary='Delete group by id')
 async def group_delete(
     id: str,
-    SessionLocal: Session = Depends(get_db_session),
+    SessionLocal: AsyncSession = Depends(get_db_session),
     response = Response() # response object of fastapi: headers, status_code and other crusual lays here
 ):
     '''                   (Docs)
@@ -309,7 +304,7 @@ async def group_delete(
 @vr_app.delete('/students/{id}', status_code=200, summary='Delete student by id')
 async def student_delete(
     id: str,
-    SessionLocal: Session = Depends(get_db_session),
+    SessionLocal: AsyncSession = Depends(get_db_session),
     response = Response() # response object of fastapi: headers, status_code and other crusual lays here
 ):
     '''                   (Docs)
@@ -328,7 +323,7 @@ async def student_delete(
 async def group_redo(
   id: str,
   redo_group: schemas.PUT_Group,
-  SessionLocal: Session = Depends(get_db_session),
+  SessionLocal: AsyncSession = Depends(get_db_session),
   response = Response()
 ):
     '''
@@ -348,7 +343,7 @@ async def group_redo(
 async def group_redo(
   id: str,
   redo_student: schemas.PUT_Student,
-  SessionLocal: Session = Depends(get_db_session),
+  SessionLocal: AsyncSession = Depends(get_db_session),
   response = Response()
 ):
     '''

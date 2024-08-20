@@ -6,8 +6,11 @@ Core for HTTP methods` handlers (from main)
 '''
 
 from fastapi import HTTPException
-from sqlalchemy.orm import Session, sessionmaker, Query
-from sqlalchemy import desc
+from sqlalchemy.orm import Session, Query
+from sqlalchemy.sql.selectable import Select  # annotation for async transaction
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import desc, func
 
 from typing import List, Optional
 import logging
@@ -59,58 +62,60 @@ def prepare_params(
 
 # TODO: 
 # - decompose searching and pagination + oredering logic
-# - create schema for function parametrs
+# - create schema for function parametrs      
 async def search_and_pag(
-        query_all: Query, # select where to search, ex: db.query(models.Group)
+        db: AsyncSession,   
+        query_all: Select,  # select where to search, ex: db.query(models.Group)
         params: schemas.RequestQuery, 
         filter: Optional[List[schemas.RequestBody.FilterItem]],
-        model: object # ex: models.Student
+        model: object  # e.g., models.Student
     ):
     '''
-    Searaching, pagination + ordering
-     - to be decomposed in 2 parts 'soon'
-     - ordering doesn`t work
+    Searching, pagination + ordering
     '''
 
     skip, order = prepare_params(params, model)
-    #logging.info(f'order: {order} | {str(order)}')
 
-    # search
+    # Search
     if filter:
-        # Taking only 0-th filter`s element, due frontend doesn`t takes greater
+        # Taking only the 0-th filter's element, as the frontend doesn't take greater
         search, search_col = filter[0].value, filter[0].column  
         if search and (search_col in model.__table__.columns.keys()):
-            query_all = query_all.filter(model.__dict__[search_col].ilike(search))   
+            query_all = query_all.where(getattr(model, search_col).ilike(f"{search}"))
 
-    # pagination
-    '''fix query to know ammount of elements before pagination=slicing + before ordering - no needed to know ammount of els'''
-    unsliced_pages_query = query_all # NOTE: deepcopy() doesn`t works with query, but 'native' coping works fine - by value
+    # Unsliced pages query for counting
+    unsliced_pages_query = query_all
 
-    # sorting - must be called before slicing (group by must be before limit amd offset)
-    if not order == False:  # NOTE: 'if order' gives error (bool isn`t defined for order:UnaryExpression)
+    # Sorting - must be called before slicing
+    if order is not False:  # Ensure order is not False
         query_all = query_all.order_by(order)
 
-    # pagination - slicing
+    # Pagination - slicing
     query_page = query_all.offset(skip).limit(params.limit)
 
-    return len(unsliced_pages_query.all()), query_page.all()   # ammount of filtered elements and selected page
+    # Execute the queries asynchronously
+    all_students = select(func.count()).select_from(unsliced_pages_query)
+    total_count = await db.execute(all_students)  # Get the total count of filtered elements
+    page = await db.execute(query_page)           # Get the actual model instances
     
-      
+    return total_count.scalar(), page.scalars().all()  # Return the total count and the selected page
 
 
 async def search_groups(   
-        db: Session,  
+        db: AsyncSession,  
         params: schemas.RequestQuery, 
         filter: Optional[List[schemas.RequestBody.FilterItem]]
     ):
-     
-    query_all = db.query(models.Group)
+    
+    query_all = select(models.Group)
     total, data = await search_and_pag(
+        db=db,
         query_all=query_all,
         params=params,
         filter=filter,
         model=models.Group
     )
+
     
     return  schemas.API_Response( 
         data = [schemas.Group(name=row.name, email=row.email, id=row.id, students_count=row.students_count) for row in data],
@@ -119,14 +124,15 @@ async def search_groups(
 
 
 async def search_students(
-        db: Session, 
+        db: AsyncSession, 
         group_id: str, 
         params: schemas.RequestQuery, 
         filter: Optional[List[schemas.RequestBody.FilterItem]]
     ):
      
-    query_all = db.query(models.Student).filter(models.Student.group_id == group_id) # query to select all students of group 
+    query_all = select(models.Student).where(models.Student.group_id == group_id)  # query to select all students of group
     total, data = await search_and_pag(
+        db=db,
         query_all=query_all,
         params=params,
         filter=filter,
@@ -140,36 +146,46 @@ async def search_students(
         )
 
 
-'''
-TODO: Оптимизация (при большом числе rps)
-Inserting rows one at a time - can be inefficient. 
-Batching multiple inserts into a single transaction can reduce the time. 
- - instead of inserting each row individually, you can insert multiple rows in one command
-'''
-async def create(db: Session, el: object):
+
+async def create(db: AsyncSession, el: object):
+    '''
+    Inserting rows one at a time - can be inefficient. 
+    Batching multiple inserts into a single transaction can reduce the time. 
+    - instead of inserting each row individually, you can insert multiple rows in one command
+    
+    TODO: Оптимизация (при ооочень большом числе rps) - просто транзакцию возвращать, а commit() по таймингу делать, когда их много накопится 
+    - для этого celery должен подойти по идее 
+    '''
     db.add(el)  
-    db.commit() # write to db
-    db.refresh(el) # fetch auto-generated fileds from db (like timestamp)
+    await db.commit() # write to db
+    await db.refresh(el) # fetch auto-generated fileds from db (like timestamp)
+    
     return el    
 
 
-async def create_group(db: Session, group: schemas.Group):
-    db_group = models.Group(id = group.id, name=group.name, email=group.email, students_count=0)
+
+async def create_group(db: AsyncSession, group: schemas.Group):
+    # unpacking group 
+    #   not to spaggetting: id = group.id, name=group.name, email=group.email, students_count=group.students_count
+    db_group = models.Group(**group.model_dump())
     return await create(db, el=db_group)
 
 
-async def create_student(db: Session, student: schemas.Student):
-    db_student = models.Student(id = student.id, group_id = student.group_id, full_name=student.full_name)
-    res = await create(db, el=db_student)
-    
-    # handle side effect on Group table
-    db_student.group.students_count += 1 # Update | [Explain] access to .groups - is "lazy propagation" - hidden sql query when needed - see models.Student.group
-    db.commit()  # Commit the changes to db
-    return res
+async def create_student(db: AsyncSession, student: schemas.Student):
+    async with db.begin():  # Ensure we're in an async context
+        db_student = models.Student(**student.model_dump())
+        res = await create(db, el=db_student)
+        
+        if res: # wait till async call results
+            # handle side effect on Group table
+            db_student.group.students_count += 1 # Update | [Explain] access to .groups - is "lazy propagation" - hidden sql query when needed - see models.Student.group
+            await db.commit()
+
+            return res
 
 
 
-async def delete(db: Session, del_elements: list[object] = [], id: Optional[str]='not given', maby_empty=False):
+async def delete(db: AsyncSession, del_elements: list[object] = [], id: Optional[str]='not given', maby_empty=False):
     ''' Delete group of elements 
 
          - returns OK-status or rises HTTPException if need - to be handeled in app (main.py)  
@@ -185,37 +201,37 @@ async def delete(db: Session, del_elements: list[object] = [], id: Optional[str]
         for el_del in del_elements:
             db.delete(el_del)      # gather in query all items to delete 
         
-        db.commit() # execute deletion
+        await db.commit() # execute deletion
         return f'Successfully deleted {id}' # status
     
     elif not maby_empty:
         raise HTTPException(status_code=404, detail=f'There`s no el with such id = {id}') # pass to exception handler in main
 
 
-async def delete_student(db: Session, id: str):
-    student = db.query(models.Student).filter(models.Student.id == id).first() 
-    group = student.group # save group before student will be deleted bellow => info about it`s group`ll unavalible 
+async def delete_student(db: AsyncSession, id: str):
+    student = await db.query(models.Student).filter(models.Student.id == id).first() 
+    group = await student.group # save group before student will be deleted bellow => info about it`s group`ll unavalible 
     res = await delete(db=db, id=id, del_elements=[student])
 
     # Update ammount of students in group after successfull deletion (failed deletion - turns execuion into exception-handling and doesn`t reach here)
     group.students_count -= 1 
-    db.commit()
+    await db.commit()
     return res
 
 
-async def delete_group(db: Session, id: str):
+async def delete_group(db: AsyncSession, id: str):
     # first - delete all group`s students
-    group_students = db.query(models.Student).filter(models.Student.group_id == id).all()
+    group_students = await db.query(models.Student).filter(models.Student.group_id == id).all()
     await delete(db=db, del_elements=group_students, maby_empty=True)
     
     # only than delete the group (logical + constraint of PK-chainig group_id with students will not allow deletion otherwise)
-    group = db.query(models.Group).filter(models.Group.id == id).first()
+    group = await db.query(models.Group).filter(models.Group.id == id).first()
     return await delete(db=db, del_elements=[group], id=id)
     
 
     
-async def redo_group(db: Session, id: str, redacted_group: schemas.PUT_Group):
-    group = db.query(models.Group).filter(models.Group.id == id).first()
+async def redo_group(db: AsyncSession, id: str, redacted_group: schemas.PUT_Group):
+    group = await db.query(models.Group).filter(models.Group.id == id).first()
 
     # redo all not empty poles 
     # TODO: take poles from pydentic model schemas.PUT_Group automatically
@@ -224,12 +240,12 @@ async def redo_group(db: Session, id: str, redacted_group: schemas.PUT_Group):
         if redacted_group.__dict__[pole]:
             setattr(group, pole, redacted_group.__dict__[pole]) # set pole by name
             
-    db.commit()
+    await db.commit()
 
 
 
-async def redo_student(db: Session, id: str, redacted_student: schemas.PUT_Student):
-    group = db.query(models.Student).filter(models.Student.id == id).first()
+async def redo_student(db: AsyncSession, id: str, redacted_student: schemas.PUT_Student):
+    group = await db.query(models.Student).filter(models.Student.id == id).first()
 
     poles = ['full_name']
 
@@ -237,7 +253,7 @@ async def redo_student(db: Session, id: str, redacted_student: schemas.PUT_Stude
         if redacted_student.__dict__[pole]:
             setattr(group, pole, redacted_student.__dict__[pole]) # set pole by name
             
-    db.commit()
+    await db.commit()
 
 
 if __name__ == '__main__':
