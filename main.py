@@ -15,17 +15,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
 
 import logging 
 from typing import Optional, List 
 
 import schemas # data schemas
 import CRUD # http methods` handlers
-from db_conf import get_db_session, init_db
+from db_conf import get_db_session
 
 
-'''
+
 План:
  I. Учимся какать
     
@@ -56,6 +55,9 @@ from db_conf import get_db_session, init_db
   +  Delete, Update добавть      
 
   >>>> CURRENT >>>>  
+    Даты в БД есть, но они почему-то не доходят
+- а ещё начал async ветку - асинхронное обращение к бд
+
     >>> +/- Ещё дату created_at нигде не добавил !!! - мб от общего объекта наследовать переиспользлвать
       - добавил автополя created_at, updated_at - они генерятся, как надо (В ответе добавления), НО
       - после обновления страницы - null`ы
@@ -198,6 +200,23 @@ vr_app.add_middleware(
 
 # ====  HTTPException handling
 
+''' [Explain of decorator logic]
+
+Объяснение декораторов в фреймворках - откуда там параметры 
+- коротко: мы всё также вызываем функцию(функцию-генератор), только теперь это функция, сгенерированная функцией от параметров 
+
+Код:
+  vr_app = FastAPI()
+
+  @vr_app.post('/groups/search', summary='View groups')
+  def my_fun(...)
+	  pass
+
+благодаря my_fun() ты определяешь, как будет себя вести POST функция, сгенерированная вызовом метода .post приложения vr_app (объекта FastApi):
+vr_app.post('/groups/search', summary='View groups')
+- т.е. метод post в FastApi - генератор функций POST
+'''
+
 # TODO: upgrade, mb
 @vr_app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, e: HTTPException):
@@ -213,7 +232,6 @@ async def http_exception_handler(request: Request, e: HTTPException):
 
 
 
-
 # ==== Search: pagination + filtering + sorting
 @vr_app.post('/groups/search', summary='View groups')
 async def groups_search(
@@ -223,13 +241,13 @@ async def groups_search(
     limit: int = 10,
     page: int = 1,
     order: list[str] = Query(['id'], alias='order[]'),
-    SessionLocal: AsyncSession = Depends(get_db_session) # connect to DB
+    SessionLocal: Session = Depends(get_db_session) # connect to DB
   ):
     '''                       (Docs)
       Get all groups
       - TODO: pagination
     '''
-    #await init_db()
+    
     params = schemas.RequestQuery(limit=limit, page=page, order=order)
     return await CRUD.search_groups(SessionLocal, params=params, filter=filter)
         
@@ -243,7 +261,7 @@ async def students_search(
     limit: int = 10,
     page: int = 1,
     order: list[str] = Query(['id'], alias='order[]'),
-    SessionLocal: AsyncSession = Depends(get_db_session) # connect to DB
+    SessionLocal: Session = Depends(get_db_session) # connect to DB
 ):
     '''                       (Docs)
       Get all students of chosen group,
@@ -262,7 +280,7 @@ async def students_search(
 async def students_create(
     name: str = Body(),
     email: str = Body(),
-    SessionLocal: AsyncSession = Depends(get_db_session) # connect to DB
+    SessionLocal: Session = Depends(get_db_session) # connect to DB
 ):
     '''                       (Docs)
       Create a new group 
@@ -274,7 +292,7 @@ async def students_create(
 async def students_create(
     full_name: str = Body(),
     group_id: str = Body(),
-    SessionLocal: AsyncSession = Depends(get_db_session) # connect to DB
+    SessionLocal: Session = Depends(get_db_session) # connect to DB
 ):
     '''                       (Docs)
       Create new student 
@@ -287,7 +305,7 @@ async def students_create(
 @vr_app.delete('/groups/{id}', status_code=200, summary='Delete group by id')
 async def group_delete(
     id: str,
-    SessionLocal: AsyncSession = Depends(get_db_session),
+    SessionLocal: Session = Depends(get_db_session),
     response = Response() # response object of fastapi: headers, status_code and other crusual lays here
 ):
     '''                   (Docs)
@@ -304,7 +322,7 @@ async def group_delete(
 @vr_app.delete('/students/{id}', status_code=200, summary='Delete student by id')
 async def student_delete(
     id: str,
-    SessionLocal: AsyncSession = Depends(get_db_session),
+    SessionLocal: Session = Depends(get_db_session),
     response = Response() # response object of fastapi: headers, status_code and other crusual lays here
 ):
     '''                   (Docs)
@@ -323,7 +341,7 @@ async def student_delete(
 async def group_redo(
   id: str,
   redo_group: schemas.PUT_Group,
-  SessionLocal: AsyncSession = Depends(get_db_session),
+  SessionLocal: Session = Depends(get_db_session),
   response = Response()
 ):
     '''
@@ -343,7 +361,7 @@ async def group_redo(
 async def group_redo(
   id: str,
   redo_student: schemas.PUT_Student,
-  SessionLocal: AsyncSession = Depends(get_db_session),
+  SessionLocal: Session = Depends(get_db_session),
   response = Response()
 ):
     '''

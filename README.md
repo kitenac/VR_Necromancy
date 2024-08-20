@@ -1,6 +1,7 @@
 # Прогресс/План
 - описан в **ветке dev**\
- в файле **main.py - незакоменченным** 
+в файле **main.py - незакоменченным** \
+- ветка  **async_pain** - асинхронная версия(serach/groups) пока только работает
 
 # Documentation:
  - each file has **doc-string at top** - short summary
