@@ -1,6 +1,7 @@
 # Прогресс/План
 - описан в ветке dev\
- в файле main.py - незакоменченным 
+ в файле main.py - незакоменченным\
+ в ветке **async_pain** - асинхронная работа с бд (search/group, add/group - уже работают)
 
 # Documentation:
  - each file has **doc-string at top** - short summary
