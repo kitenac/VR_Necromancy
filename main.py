@@ -24,7 +24,7 @@ import CRUD # http methods` handlers
 from db_conf import get_db_session
 
 
-
+'''
 План:
  I. Учимся какать
     
@@ -55,35 +55,23 @@ from db_conf import get_db_session
   +  Delete, Update добавть      
 
   >>>> CURRENT >>>>  
+ 
+   Router добавить и тогда main можно разнести красиво
+        - 26:40 - https://www.youtube.com/watch?v=gBfkX9H3szQ&list=PLeLN0qH0-mCVQKZ8-W1LhxDcVlWtTALCS
+ 
     Даты в БД есть, но они почему-то не доходят
-- а ещё начал async ветку - асинхронное обращение к бд
+   >>> Узнать, как это исправить/жить с этим - мб загуглить pydentic + autogenerating fields
 
-    >>> +/- Ещё дату created_at нигде не добавил !!! - мб от общего объекта наследовать переиспользлвать
-      - добавил автополя created_at, updated_at - они генерятся, как надо (В ответе добавления), НО
-      - после обновления страницы - null`ы
-      - schema pydentic - переписывает поля из model почему-то - 
-      >>> Узнать, как это исправить/жить с этим - мб загуглить pydentic + autogenerating fields
-      
-  >>> методы /redo - автоматизировать
-  >>> CRUDб main раздуло слишком - создай папку отдельную и по разным файлам разбей, а CRUD.py - их агрегатором пусть будет 
+    - а ещё начал async ветку - асинхронное обращение к бд
+
   >>> Разобраться, как работает автозакрытие сессий и Depends:
   -  получается, что finally отрабатывает только после завершения search()
-  
-  def get_db_session():
-    db = sessionFactory() # create session with db
-    try:
-        yield db
-    finally:
-        db.close()        # auto-closing session when yielded above session(db) is abandoned (function that used session is completed => controll return in get_db and 'finally' closes session)
+        >>> Есть ответ в Obsidian Fastapi/problem_session - на примере сравнения с Depends()
 
-    @app.post('/path')
-    async def search(
-      SessionLocal: Session = Depends(get_db_session) # connect to DB
-    ):
-    # some logic
-    
+  >>> CRUDб main раздуло слишком - создай папку отдельную и по разным файлам разбей, а CRUD.py - их агрегатором пусть будет 
   >>> БД - students_count автоматически считать мб можно - COUNT (STUDENTS: id == id)
       - это называется триггер) - есть смысл для надёжности использовать его
+      - как вариант в models: (default = func.count(...))
 
   >>>> CURRENT >>>> 
 

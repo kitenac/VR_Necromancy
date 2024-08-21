@@ -141,15 +141,15 @@ async def search_students(
 
 
 
-async def create(db: Session, el: object):
-    '''
-    Inserting rows one at a time - can be inefficient. 
-    Batching multiple inserts into a single transaction can reduce the time. 
-    - instead of inserting each row individually, you can insert multiple rows in one command
+'''
+TODO: Оптимизация (при ооочень большом числе rps) - просто транзакцию возвращать, а commit() по таймингу делать, когда их много накопится 
+- для этого celery должен подойти по идее 
     
-    TODO: Оптимизация (при ооочень большом числе rps) - просто транзакцию возвращать, а commit() по таймингу делать, когда их много накопится 
-    - для этого celery должен подойти по идее 
-    '''
+nserting rows one at a time - can be inefficient. 
+Batching multiple inserts into a single transaction can reduce the time. 
+- instead of inserting each row individually, you can insert multiple rows in one command
+'''
+async def create(db: Session, el: object):
     db.add(el)  
     db.commit() # write to db
     db.refresh(el) # fetch auto-generated fileds from db (like timestamp)
@@ -219,31 +219,29 @@ async def delete_group(db: Session, id: str):
     return await delete(db=db, del_elements=[group], id=id)
     
 
-    
-async def redo_group(db: Session, id: str, redacted_group: schemas.PUT_Group):
-    group = db.query(models.Group).filter(models.Group.id == id).first()
 
-    # redo all not empty poles 
-    # TODO: take poles from pydentic model schemas.PUT_Group automatically
-    poles = ['name', 'email']
-    for pole in poles:
-        if redacted_group.__dict__[pole]:
-            setattr(group, pole, redacted_group.__dict__[pole]) # set pole by name
+async def redo(db: Session, id: str, redacted_schema: object, redo_model: object):
+    old_el = db.query(redo_model).filter(redo_model.id == id).first()
+
+    for pole in redacted_schema.__dict__:
+        if redacted_schema.__dict__[pole]:
+            setattr(old_el, pole, redacted_schema.__dict__[pole]) # set pole by name
             
     db.commit()
+    
 
-
+# [Discuss] functions redo_* below not really necessory (redo allready has all needed), but for better readability/flexability it`s good to have such functions (to much parametrs)
+async def redo_group(db: Session, id: str, redacted_group: schemas.PUT_Group):
+    await redo(db=db, 
+               id=id, 
+               redacted_schema=redacted_group, 
+               redo_model=models.Group)
 
 async def redo_student(db: Session, id: str, redacted_student: schemas.PUT_Student):
-    group = db.query(models.Student).filter(models.Student.id == id).first()
-
-    poles = ['full_name']
-
-    for pole in poles:
-        if redacted_student.__dict__[pole]:
-            setattr(group, pole, redacted_student.__dict__[pole]) # set pole by name
-            
-    db.commit()
+    await redo(db=db, 
+               id=id, 
+               redacted_schema=redacted_student, 
+               redo_model=models.Student)
 
 
 if __name__ == '__main__':
