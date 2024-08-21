@@ -7,7 +7,8 @@ schema - схема данных
 
 from pydantic import BaseModel, Field # easy converting data to JSON, validating types
 from typing import Dict, List, Optional # annotations for dictionaries
-
+from datetime import datetime
+from sqlalchemy import func
 
 # ======= Response =======
 # API response template
@@ -54,20 +55,27 @@ class RequestQuery(BaseModel):
 
 
 # ======= Tables =======
-class Group(BaseModel):
-  id: str
-  name: str
-  students_count: int
-  email: str
 
+# common poles for each table
+class CommonTable(BaseModel):
+   # auto generated poles - so make `em optional (by None)
+   id: Optional[str] = None
+   created_at: Optional[datetime] =  None
+   updated_at: Optional[datetime] =  None
+
+
+class Group(CommonTable):
+  name: str
+  email: str
+  students_count: Optional[int] = 0
+  
   # add support for orm`s objects - by poles (in pydentic - by keys):
   #   in orm:      id = data.id
   #   in pydentic: id = data['id']  
   class Config:
      from_attributes = True
   
-class Student(BaseModel):
-  id: str
+class Student(CommonTable):
   group_id: str
   full_name: str
   class Config:

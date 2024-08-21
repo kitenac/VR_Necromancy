@@ -13,7 +13,7 @@ from models import Base # all Tables from models inherits from it => can create 
 host, port = '127.0.0.1', '3306'
 sql_vers, driver = 'mysql', 'pymysql'      
 usr, pwd = 'root', 'root'
-db_name = 'VR_Pharmacy'
+db_name = 'VR_Pharmacy_v2'
 
 
 DATABSE_URL = f"{sql_vers}+{driver}://{usr}:{pwd}@{host}:{port}/{db_name}"

@@ -140,26 +140,32 @@ async def search_students(
         )
 
 
-'''
-TODO: Оптимизация (при большом числе rps)
-Inserting rows one at a time - can be inefficient. 
-Batching multiple inserts into a single transaction can reduce the time. 
- - instead of inserting each row individually, you can insert multiple rows in one command
-'''
+
 async def create(db: Session, el: object):
+    '''
+    Inserting rows one at a time - can be inefficient. 
+    Batching multiple inserts into a single transaction can reduce the time. 
+    - instead of inserting each row individually, you can insert multiple rows in one command
+    
+    TODO: Оптимизация (при ооочень большом числе rps) - просто транзакцию возвращать, а commit() по таймингу делать, когда их много накопится 
+    - для этого celery должен подойти по идее 
+    '''
     db.add(el)  
     db.commit() # write to db
     db.refresh(el) # fetch auto-generated fileds from db (like timestamp)
     return el    
 
 
+
 async def create_group(db: Session, group: schemas.Group):
-    db_group = models.Group(id = group.id, name=group.name, email=group.email, students_count=0)
+    # unpacking group 
+    #   not to spaggetting: id = group.id, name=group.name, email=group.email, students_count=group.students_count
+    db_group = models.Group(**group.model_dump())
     return await create(db, el=db_group)
 
 
 async def create_student(db: Session, student: schemas.Student):
-    db_student = models.Student(id = student.id, group_id = student.group_id, full_name=student.full_name)
+    db_student = models.Student(**student.model_dump())
     res = await create(db, el=db_student)
     
     # handle side effect on Group table
