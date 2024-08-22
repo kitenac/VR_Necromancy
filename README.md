@@ -22,19 +22,17 @@ tag for my backend: PATCHED_API_ADDR
 - browser(for frontend): \
   change default Refferr-Policy to no-referrer-when-downgrade (option 3 in Firefox) to send full Referer Header from frontend (otherwise group_id from client`s url will be not avaliable)  
 
-- python: 3.12.1
+- python: 3.12.1\
 
-
+- [recomended] <use venv>
 
 # Start server:
-- Linux (WSL)
- via 0.0.0.0:\
- cd ./vr_app \
- [recomended] <use venv>\
- uvicorn main:vr_app --host 0.0.0.0 --port 8001 
+- Linux (WSL) 
+  from directory where vr_app module located run (-m - module):\
+   python3 -m vr_app.main 
 
-- Windows (cmd):\
-  serv is accessed via 127.0.0.1:8001 
+- Windows:\
+  serv is accessed via 127.0.0.1:8001 (after port forvarding)
 
 
 # ------------- TODO PART ------------- 

@@ -12,9 +12,9 @@ from sqlalchemy import desc
 from typing import List, Optional
 import logging
 
-from db_conf import get_db_session  # session to our DB
-import models                       # existing tables
-import schemas                      # data schemas
+from .db_conf import get_db_session  # session to our DB
+from . import models                 # existing tables
+from . import schemas                # data schemas
 
 
 def prepare_params(

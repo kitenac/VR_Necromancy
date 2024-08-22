@@ -79,6 +79,31 @@ class Student(CommonTable):
   group_id: str
   full_name: str
 
+# Tables for Quest`s Page
+class Quest(CommonTable):
+   name: str
+
+'''
+# Quest containing tables^
+class Task(BaseModel):
+   task_id: str
+   task_name: str
+   answer: bool
+   answered_at: str
+
+class StudentQuest(BaseModel):
+    id: str
+    student_full_name: str
+    quest_start_at: str
+    quest_end_at: str
+    quest_total_tasks_count: int
+    quest_true_answer_count: int
+    quest_false_answer_count: int
+    tasks: list[Task] # or task_map
+    student_id: str
+'''
+
+     
 # ==== HTTP methods data schemas
 class PUT_Student(BaseModel):
   full_name: str

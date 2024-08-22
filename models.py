@@ -33,6 +33,9 @@ class Student(CommonModel):
     # now Group of student (same group_id) accessed directly from this pole (when accessing - makes sql query)
     group = relationship('Group') # unidirectional relation as example
     
+class Quest(CommonModel):
+    __tablename__ = 'Quest'
+    name = Column(CHAR(128))
 
 class Task(CommonModel):
     __tablename__ = 'Task'
@@ -40,4 +43,3 @@ class Task(CommonModel):
     task_name = Column(CHAR(32), nullable=False)
     answer = Column(BOOLEAN)
     answered_at = Column(DATETIME)
-
