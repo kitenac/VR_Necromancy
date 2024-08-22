@@ -62,6 +62,12 @@ class CommonTable(BaseModel):
    id: Optional[str] = None
    created_at: Optional[datetime] =  None
    updated_at: Optional[datetime] =  None
+  
+   # add support for orm`s objects - by poles (in pydentic - by keys):
+   #   in orm:      id = data.id
+   #   in pydentic: id = data['id']  
+   class Config:
+     from_attributes = True
 
 
 class Group(CommonTable):
@@ -69,28 +75,40 @@ class Group(CommonTable):
   email: str
   students_count: Optional[int] = 0
   
-  # add support for orm`s objects - by poles (in pydentic - by keys):
-  #   in orm:      id = data.id
-  #   in pydentic: id = data['id']  
-  class Config:
-     from_attributes = True
-  
 class Student(CommonTable):
   group_id: str
   full_name: str
-  class Config:
-     from_attributes = True
 
+# Tables for Quest`s Page
+class Quest(CommonTable):
+   name: str
 
+'''
+# Quest containing tables^
+class Task(BaseModel):
+   task_id: str
+   task_name: str
+   answer: bool
+   answered_at: str
+
+class StudentQuest(BaseModel):
+    id: str
+    student_full_name: str
+    quest_start_at: str
+    quest_end_at: str
+    quest_total_tasks_count: int
+    quest_true_answer_count: int
+    quest_false_answer_count: int
+    tasks: list[Task] # or task_map
+    student_id: str
+'''
+
+     
 # ==== HTTP methods data schemas
 class PUT_Student(BaseModel):
   full_name: str
-  class Config:
-     from_attributes = True  
 
 class PUT_Group(BaseModel):
   # only one pole required => both params`re optional in a way)
   name:  Optional[str] = None
   email: Optional[str] = None
-  class Config:
-     from_attributes = True

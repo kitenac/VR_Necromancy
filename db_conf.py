@@ -6,7 +6,7 @@ Configuring access to Database
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base # all Tables from models inherits from it => can create `em here 
+from .models import Base # all Tables from models inherits from it => can create `em here 
 
 
 # accessing DATABASE, TODO: export some params to .ENV:
