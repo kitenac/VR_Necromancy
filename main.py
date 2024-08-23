@@ -4,7 +4,7 @@
  - HTTP-app functions (parted into routerers from .routers):
    - HTTP methods for different resources 
    - HTTP parametrs extraction (body, query, Referer, path-params)
-   - handling HTTP exceptions
+   - handling HTTP exceptionsgit 
    - TODO: preserving HTTP response here (default status_code must be here for each method: like in DELETE methods)
       - FIX: /search methods gets already formed API_Response => must inject status code
 
