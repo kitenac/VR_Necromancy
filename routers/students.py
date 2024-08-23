@@ -9,7 +9,7 @@ router = APIRouter(prefix='/students')
 
 # Search: pagination + filtering + sorting
 @router.post('/search', summary='View students of group')
-async def students_search(
+async def student_search(
     request: Request,  # client_url can be retrived from Header "Referer"
     filter: Optional[List[schemas.RequestBody.FilterItem]] = None,  # Body parameter
     with_aliased: Optional[schemas.RequestBody.With] = Body(default=None, alias="with"),  # Use Body to extract 'with' directly
@@ -32,7 +32,7 @@ async def students_search(
 
 # Create
 @router.post('/', summary='Add student')
-async def students_create(
+async def student_create(
     full_name: str = Body(),
     group_id: str = Body(),
     SessionLocal: Session = Depends(get_db_session) # connect to DB
@@ -65,7 +65,7 @@ async def student_delete(
 
 # ==== Redo
 @router.put('/{id}', status_code=200, summary='redo student')
-async def group_redo(
+async def student_redo(
   id: str,
   redo_student: schemas.PUT_Student,
   SessionLocal: Session = Depends(get_db_session),

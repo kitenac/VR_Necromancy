@@ -8,6 +8,7 @@ Core for HTTP methods` handlers (from main)
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, sessionmaker, Query
 from sqlalchemy import desc
+from pydantic import BaseModel # for annotating schemas
 
 from typing import List, Optional
 import logging
@@ -96,8 +97,7 @@ async def search_and_pag(
     return len(unsliced_pages_query.all()), query_page.all()   # ammount of filtered elements and selected page
     
       
-
-
+      
 async def search_groups(   
         db: Session,  
         params: schemas.RequestQuery, 
@@ -113,7 +113,7 @@ async def search_groups(
     )
     
     return  schemas.API_Response( 
-        data = [schemas.Group(name=row.name, email=row.email, id=row.id, students_count=row.students_count) for row in data],
+        data = [schemas.Group(**row.__dict__) for row in data], # unpack dictionary of models` key to initialize schema
         meta = schemas.API_Response.MetaData(total=total)
         )
 
@@ -133,12 +133,31 @@ async def search_students(
         model=models.Student
     )
 
-    # TODO: somehow automate data below
     return  schemas.API_Response( 
-        data = [schemas.Student(full_name=row.full_name, id=row.id, group_id=row.group_id) for row in data],
+        data = [schemas.Student(**row.__dict__) for row in data],
         meta = schemas.API_Response.MetaData(total=total)
         )
 
+
+# === Quests 
+async def search_quests(   
+        db: Session,  
+        params: schemas.Quest, 
+        filter: Optional[List[schemas.RequestBody.FilterItem]]
+    ):
+     
+    query_all = db.query(models.Quest)
+    total, data = await search_and_pag(
+        query_all=query_all,
+        params=params,
+        filter=filter,
+        model=models.Quest
+    )
+    
+    return  schemas.API_Response( 
+        data = [schemas.Quest(**row.__dict__) for row in data],
+        meta = schemas.API_Response.MetaData(total=total)
+        )
 
 
 '''
@@ -173,6 +192,10 @@ async def create_student(db: Session, student: schemas.Student):
     db.commit()  # Commit the changes to db
     return res
 
+# Can be called from auto-doc page
+async def create_quest(db: Session, quest: schemas.Quest):
+    db_quest = models.Quest(**quest.model_dump())
+    return await create(db, el=db_quest)
 
 
 async def delete(db: Session, del_elements: list[object] = [], id: Optional[str]='not given', maby_empty=False):
@@ -220,12 +243,13 @@ async def delete_group(db: Session, id: str):
     
 
 
-async def redo(db: Session, id: str, redacted_schema: object, redo_model: object):
+async def redo(db: Session, id: str, redacted_schema: BaseModel, redo_model: object):
     old_el = db.query(redo_model).filter(redo_model.id == id).first()
-
-    for pole in redacted_schema.__dict__:
-        if redacted_schema.__dict__[pole]:
-            setattr(old_el, pole, redacted_schema.__dict__[pole]) # set pole by name
+    redo_el_dict = redacted_schema.model_dump() # get dictionary from redo element
+    
+    for key, val in redo_el_dict.items():
+        if val:
+            setattr(old_el, key, val) # set pole by name
             
     db.commit()
     
