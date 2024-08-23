@@ -28,8 +28,8 @@ tag for my backend: PATCHED_API_ADDR
 
 # Start server:
 - Linux (WSL) 
-  from directory where vr_app module located run (-m - module):\
-   python3 -m vr_app.main 
+  from directory where module located run (-m - module):\
+   python3 -m VR_Necromancy.main 
 
 - Windows:\
   serv is accessed via 127.0.0.1:8001 (after port forvarding)

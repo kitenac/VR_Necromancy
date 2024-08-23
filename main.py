@@ -24,7 +24,7 @@ from .routers import groups, students, quests # like mini-apps
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.info(''.join(open('vr_app/README.md', 'r').readlines())) # display README.md in logs on start (added vr_app/ - due context shifted to parent directory - due we use module)
+logger.info(''.join(open('VR_Necromancy/README.md', 'r').readlines())) # display README.md in logs on start (added vr_app/ - due context shifted to parent directory - due we use module)
 
 # App settings
 API_BASE = '/api/v1.0'
