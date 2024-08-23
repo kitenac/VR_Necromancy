@@ -23,3 +23,15 @@ async def quests_search(
     '''
     params = schemas.RequestQuery(limit=limit, page=page, order=order)
     return await CRUD.search_quests(SessionLocal, params=params, filter=filter)
+
+# Create
+@router.post('/', summary='Add quest')
+async def quest_create(
+    name: str = Body(),
+    SessionLocal: Session = Depends(get_db_session) # connect to DB
+):
+    '''                       (Docs)
+      Create a new quest
+    '''
+    quest = schemas.Quest(name=name)
+    return await CRUD.create_quest(db=SessionLocal, quest=quest)

@@ -29,7 +29,7 @@ async def groups_search(
 
 # Create
 @router.post('/', summary='Add group')
-async def students_create(
+async def group_create(
     name: str = Body(),
     email: str = Body(),
     SessionLocal: Session = Depends(get_db_session) # connect to DB

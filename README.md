@@ -34,6 +34,18 @@ tag for my backend: PATCHED_API_ADDR
 - Windows:\
   serv is accessed via 127.0.0.1:8001 (after port forvarding)
 
+# Setup app
+Some data supposed to go from external service (todo)
+- so to populate Task`s page - go to {BACKEND}/docs 
+    and set unacessable data handly at:\
+      - post /quests/
+      - post /tasks/
+
+
+# Known frontend`s bug
+groups aren`t displayed at Tasks page\
+solution: add a quest as described in **Setup app**
+
 
 # ------------- TODO PART ------------- 
 >> Проброс портов должен помочь с доступам не только через localhost:\
