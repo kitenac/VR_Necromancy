@@ -7,6 +7,19 @@ from ..db_conf import get_db_session
 
 router = APIRouter(prefix='/quests')
 
+# Create
+@router.post('', summary='Add quest')
+async def quest_create(
+    name: str = Body(),
+    SessionLocal: Session = Depends(get_db_session) # connect to DB
+):
+    '''                       (Docs)
+      Create a new quest
+    '''
+    quest = schemas.Quest(name=name)
+    return await CRUD.quests.create(db=SessionLocal, quest=quest)
+
+
 @router.post('/search', summary='View avaliable quests')
 async def quests_search(
     request: Request,  # client_url can be retrived from Header "Referer"
@@ -22,16 +35,4 @@ async def quests_search(
       - pagination + filtering + sorting
     '''
     params = schemas.RequestQuery(limit=limit, page=page, order=order)
-    return await CRUD.search_quests(SessionLocal, params=params, filter=filter)
-
-# Create
-@router.post('/', summary='Add quest')
-async def quest_create(
-    name: str = Body(),
-    SessionLocal: Session = Depends(get_db_session) # connect to DB
-):
-    '''                       (Docs)
-      Create a new quest
-    '''
-    quest = schemas.Quest(name=name)
-    return await CRUD.create_quest(db=SessionLocal, quest=quest)
+    return await CRUD.quests.search(SessionLocal, params=params, filter=filter)
