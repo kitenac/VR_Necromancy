@@ -113,7 +113,7 @@ async def search_groups(
     )
     
     return  schemas.API_Response( 
-        data = [schemas.Group(name=row.name, email=row.email, id=row.id, students_count=row.students_count) for row in data],
+        data = [schemas.Group(**row.__dict__) for row in data], # unpack dictionary of models` key to initialize schema
         meta = schemas.API_Response.MetaData(total=total)
         )
 
@@ -133,12 +133,31 @@ async def search_students(
         model=models.Student
     )
 
-    # TODO: somehow automate data below
     return  schemas.API_Response( 
-        data = [schemas.Student(full_name=row.full_name, id=row.id, group_id=row.group_id) for row in data],
+        data = [schemas.Student(**row.__dict__) for row in data],
         meta = schemas.API_Response.MetaData(total=total)
         )
 
+
+# === Quests 
+async def search_quests(   
+        db: Session,  
+        params: schemas.Quest, 
+        filter: Optional[List[schemas.RequestBody.FilterItem]]
+    ):
+     
+    query_all = db.query(models.Quest)
+    total, data = await search_and_pag(
+        query_all=query_all,
+        params=params,
+        filter=filter,
+        model=models.Quest
+    )
+    
+    return  schemas.API_Response( 
+        data = [schemas.Quest(**row.__dict__) for row in data],
+        meta = schemas.API_Response.MetaData(total=total)
+        )
 
 
 '''

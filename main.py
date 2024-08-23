@@ -1,6 +1,6 @@
 '''
  - Server configuration 
- 
+
  - HTTP-app functions (parted into routerers from .routers):
    - HTTP methods for different resources 
    - HTTP parametrs extraction (body, query, Referer, path-params)
@@ -18,7 +18,7 @@ import uvicorn
 
 import logging 
 from . import schemas # data schemas
-from .routers import groups, students # like mini-apps  
+from .routers import groups, students, quests # like mini-apps  
 
 # ==== HTTP App configuration
 # Настройка логирования
@@ -42,6 +42,7 @@ CORS_conf = {
 # - like mini-apps for each url-prefix  (to manage app here we use @vr_app, inside routers - @router)
 vr_app.include_router(groups.router)    # for /groups/*
 vr_app.include_router(students.router)  # for /students/*
+vr_app.include_router(quests.router)    # for /quests/*
 
 
 # Добавим middleware для CORS
@@ -119,15 +120,18 @@ vr_app.post('/groups/search', summary='View groups')
 
   +  Delete, Update добавть      
 
+  + Router добавить и тогда main можно разнести красиво
+
   >>>> CURRENT >>>>  
- 
-   Router добавить и тогда main можно разнести красиво
-        - 26:40 - https://www.youtube.com/watch?v=gBfkX9H3szQ&list=PLeLN0qH0-mCVQKZ8-W1LhxDcVlWtTALCS
- 
-    Даты в БД есть, но они почему-то не доходят
-   >>> Узнать, как это исправить/жить с этим - мб загуглить pydentic + autogenerating fields
+
+  >>> реализовать добавление квестов (через доку дёргать)
+    и добиться, чтоб группы отображалиь в странице заданий (мета - уже есть!)  
+  + поиск квестов сделал
+   + Даты в БД - починил
 
     - а ещё начал async ветку - асинхронное обращение к бд
+
+
 
   >>> Разобраться, как работает автозакрытие сессий и Depends:
   -  получается, что finally отрабатывает только после завершения search()
