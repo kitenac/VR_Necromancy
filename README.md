@@ -42,7 +42,7 @@ Some data supposed to go from external service (todo)
       - post /tasks/
 
 
-# Known frontend`s bug
+# BUG fix - Known frontend`s bug
 groups aren`t displayed at Tasks page\
 solution: add a quest as described in **Setup app**
 
