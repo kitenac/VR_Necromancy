@@ -1,15 +1,25 @@
 '''
- - Server configuration 
 
+Project structure:
+
+0) main - HTTP-App configuration 
+
+1) routers (~mini-apps):
  - HTTP-app functions (parted into routerers from .routers):
    - HTTP methods for different resources 
    - HTTP parametrs extraction (body, query, Referer, path-params)
    - handling HTTP exceptionsgit 
-   - TODO: preserving HTTP response here (default status_code must be here for each method: like in DELETE methods)
-      - FIX: /search methods gets already formed API_Response => must inject status code
-
    
-CRUD: Core for vr_app`s HTTP methods` handlers
+2) CRUD: 
+  - Core for each vr_app`s router HTTP methods` handlers
+
+3) models - ORM
+
+4) schemas - data schema defenitions + auto validation - thanks to pydentic
+
+Additional apps:
+ 1) admin_page - CRUD through external entities
+
 '''
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +28,9 @@ import uvicorn
 
 import logging 
 from . import schemas # data schemas
-from .routers import groups, students, quests # like mini-apps  
+from .routers import groups, students, quests, progress, external # like mini-apps  
+from .admin_page import create_admin_page
+
 
 # ==== HTTP App configuration
 # Настройка логирования
@@ -38,12 +50,21 @@ CORS_conf = {
   'headers': ["*"]    # Accept, Content-Type, Referer, Content-Length ...
 }
 
+
+
+# Mount the admin page app to main app
+admin = create_admin_page(vr_app)
+vr_app.mount(app=admin, path='/admin')
+
 # URL prefixes handlers 
 # - like mini-apps for each url-prefix  (to manage app here we use @vr_app, inside routers - @router)
-vr_app.include_router(groups.router)    # for /groups/*
-vr_app.include_router(students.router)  # for /students/*
-vr_app.include_router(quests.router)    # for /quests/*
+vr_app.include_router(groups.router)    # for /groups*
+vr_app.include_router(students.router)  # for /students*
+vr_app.include_router(quests.router)    # for /quests*
+vr_app.include_router(progress.router)  # for /progress*
 
+# mocking endpoint [not needed anymore due we already have admin_page] - for data that must go from differenr service
+vr_app.include_router(external.router)  # for /external*
 
 # Добавим middleware для CORS
 vr_app.add_middleware(
@@ -67,6 +88,7 @@ async def http_exception_handler(request: Request, e: HTTPException):
           status=e.detail
         ).model_dump()
     )
+
 
 
 if __name__ == "__main__":
@@ -121,58 +143,76 @@ vr_app.post('/groups/search', summary='View groups')
 
   + Router добавить и тогда main можно разнести красиво
 
-  >>>> CURRENT >>>>  
-
    + реализовать добавление квестов (через доку дёргать) и добиться, чтоб группы отображалиь в странице заданий   
    + Даты в БД - починил
 
     - а ещё начал async ветку - асинхронное обращение к бд
 
-  + CRUD - тоже в модуль оформить
+   + main раздуый разнёс 
+   + CRUD - тоже в модуль оформить
+   
+   + админку добавил - для удобной работы с Task/Quest
+   + CRUD по всем страницам
+  
+  >>>> CURRENT >>>>  
 
-  >>> Разобраться, как работает автозакрытие сессий и Depends:
-  -  получается, что finally отрабатывает только после завершения search()
-        >>> Есть ответ в Obsidian Fastapi/problem_session - на примере сравнения с Depends()
+  >>> QuestPage:
+  
+    УРА - уже отображается прогресс!!!!
+    + пофиксил join в progress
 
-  + main раздуый разнёс 
+    + cascade-ом порешать удаление всех дочерних сущностей при удалении родителькой
+        [+] на удалении студентов работает - сессии квестов с тасками удалятся
+        [+] при удалении групп студенты, а вместе с ними и сессионные квесты и таски удаляются
 
-  >>> БД - students_count автоматически считать мб можно - COUNT (STUDENTS: id == id)
-      - index - тоже вариант
-      - это называется триггер) - есть смысл для надёжности использовать его
-      - как вариант в models: (default = func.count(...))
+
+    И всё, только
+      + Dockerfile приложения написать и закинуть Image на DockerHub 
+        + DockerCompose - чтоб БД тоже была
+      + залить на гитхаб  
+
+    Потом - по 30 минут/день в перерывах от диплома
+      - моменты из теории смотреть потихоньку 
+
 
   >>>> CURRENT >>>> 
 
   
-  3) Должок по теории закрыть: 
-      Про концепцию ORM посомтреть (как в память идёт отображение таблиц - маппинг таблицы и объекта, какой жизненый цикл в памяти у объекта, связанного с таблицей(моделью таблицы))  
-      Посмотреть ОБЗОРНО туторы по FastAPI, sqlalchemy
+  3) Должок по теории закрыть/кругозор: 
+      1) Про концепцию ORM посомтреть (как в память идёт отображение таблиц - маппинг таблицы и объекта, какой жизненый цикл в памяти у объекта, связанного с таблицей(моделью таблицы))  
+      
+      2) Посмотреть ОБЗОРНО туторы по FastAPI, sqlalchemy
       - расширить кругозор - без конспектов - на понимание
-     
-   
+        
+        - relationship - очень интересно, что из себя представляет/как работает - т.к. он помог в адимнке внешние ключи задать
+            - при этом поля с relationship в реальной таблице нет (проверял) - это как-бы загатовка под запрос к БД - таблицы выбраной
+        - cascade парметр в relationship в моделях - удалять все связанные сущности - было бы удобнее с ней писать (с другой стороны без этой фичи с sql хорошо потренеровался)
+      
+        - получилось использовать, но зачем нужен all (как хорошую практику рекомендуют в доке) - я не понимаю (зачем обновлять дочерние сущности при )
+        
+            неплохая статья - на русском даже:  https://www.peterspython.com/ru/blog/sqlalchemy-ispolzovanie-cascade-deletes-dlia-udaleniia-sviazannykh-obektov
 
-  II. Как разбирусь и создам сессии:
-  Буду общаться с БД - данные на сайте будут от туда
+            дока:
+            The available cascades are ``save-update``, ``merge``,
+            ``expunge``, ``delete``, ``delete-orphan``, and ``refresh-expire``.
+            An additional option, ``all`` indicates shorthand for
+            ``"save-update, merge, refresh-expir
+        
+        - что значит .scalar() в query sqlalchemy, почему это предпочтительно
+
+      3) Разобраться, как работает автозакрытие сессий и Depends:
+         - получается, что finally отрабатывает только после завершения search()
+        >>> Есть ответ в Obsidian Fastapi/problem_session - на примере сравнения с Depends()
+
+
+
+  II. Как всё готово (MVP есть):
 
   *) перенимать хорошие практики из реальных fastapi проектов - тут хорошо читается:
      https://github.com/nsidnev/fastapi-realworld-example-app/blob/master/app/api/dependencies/database.py
-  
-  
-  1) CRUD по всем страницам
-    - вот тут /quests будут констрейнтов давать - но там только R - Read
-      >>> Доработка Quests, Tasks
-   Обязательные фикс:
-    !!!нужно будет доработать ужаление студентов и групп, т.к. новые констрейнты - таски и кветы студента
-    - значит при удалении студента нужно будет удалить его таски и квесты
-    - ну и в группе, когда студентов ужаляешь - также
-    - т.е. надо как-то переиспользовать функции 
-    - а именно - без коммита основные функции переписать - чисто транзакции и тогда можно будет удаление студентов переиспользовать в удалении группы
 
-  2) валидировать ввод форм при создании/редактировании, а ещё поиск - чтоб SQL-инъекций не было  
-    - email валидировать точно: not null (by model) + regexp
-    - full_name для студентов - чтоб 3 слова было в строке
-
-  3) коды состояний возвращать и статус
+  ...) [По ходу других пунктов добавлять] 
+    коды состояний возвращать и статус
     - CRUD.delete + @vr_app.delete('/groups/{id}', status_code=204)
       - уже в таком ключе писал 
 
@@ -183,7 +223,11 @@ vr_app.post('/groups/search', summary='View groups')
     >> Это уже шаг к RESTful principles 
        and provides clear feedback to the client regarding the outcome of their request
 
-  4) Обвески/окружение
+  1) валидировать ввод форм при создании/редактировании, а ещё поиск - чтоб SQL-инъекций не было  
+    - email валидировать точно: not null (by model) + regexp
+    - full_name для студентов - чтоб 3 слова было в строке
+
+  2) Обвески/окружение
      - тестов добавить - pytest (покрыть методы)  
         - например нагрузочные: 
           groups/delete тестил в группе из 3 студентов и 33 - разницы нет - ~600мс, 250 человек - 2,5 секунды
@@ -194,9 +238,22 @@ vr_app.post('/groups/search', summary='View groups')
           
      - (не сложно это)  логгирование добавить - sentry (5 строк кода и на их фронте есть всевозможная аналитика с дашбордами - тот курс от Шумейко)
   
+  *) поиграться с миграциями (например параметр nullable уточнив для таблиц) - alembic   
+    - а то потом времени не будет в этом потренироватья, а ошибки тут недопустимы
+
+    
   *) рефакторинг 
     - читаемость повысить, добавить ООП-патернов, мб архитектурно что-то изменить 
     - models, schemas - тоже в модуль организовать
+
+  >>> БД - students_count автоматически считать мб можно
+      - index - тоже вариант
+      - это называется триггер) - есть смысл для надёжности использовать его
+      - как вариант в models: (default = func.count(...))
+
+  *) админку от fastapi добавить по корневому URL: GET API/
+      - авторизацию настроить для админки, мб с jwt 
+  
   **) что-то со скоростью создания сделать - ооочень долго идёт, мб с сессиями что или сервер с uvicorn сменить, мб параметры сервера покрутить - ресурсов юольше дать
     
   1000) !!! Dockerfile приложения написать и закинуть Image на DockerHub 
@@ -208,14 +265,36 @@ vr_app.post('/groups/search', summary='View groups')
   надо его облагородить:
     0) Redis подключить, в Fastapi достаточно декоратор будет навесить функциям: 6:20
         https://www.youtube.com/watch?v=Kr-V4IgJFes
+
+        - мб посмотреть ещё в сторону других noSQL: ClickHouse, Cassandra
+
+        !!! А вообще Redis очень круто развился и может собой всё остальное заменить - это не только про кеш - это будущее:
+
+        - RediSearch
+          Индексирует текст, а затем позволяет делать поиск по любым его частям за доли секунды на огромном объеме данных. По сути, заменяет вам ElasticSearch.
+
+        - RedisJSON
+          Позволяет хранить документы без четкой схемы в формате JSON, а также выполнять поиск по JSONPath и многое другое. В общем-то может заменить вам MongoDB.
+
+        - RedisGraph
+          Пишите соц. сеть и нужно быстро искать связи между юзерами? Для этого не нужно отдельной графовой БД типа Neo4j - модуль RedisGraph сделает все необходимое.
+
+        - RedisTimeSeries
+          Нужно подсохранить данные об аналитике, а затем удобно и быстро вытаскивать их по временным отрезкам для построения, например, графиков на них? RedisTimeSeries все решит, и не придется подрубать никаких Prometheus.
+
+        - Redis Streams/Message Broker
+          Нужно обрабатывать огромные потоки событий и иметь возможность масштабироваться? Этот модуль позволит использовать Redis не только, как БД, но и как брокер сообщений, такой как Kafka!        
+
+
     1) разделить приложение на два микросервиса (две отдельные кодовые бызы)
        как вариант на:
-       - квесты и таски приходят извне => в отдельный проект сделать
+       - квесты и таски приходят извне => в отдельный проект сделать - с модульной структурой не сложно будет этот проект на 2 проекта разбить
        -группы
       + ещё фронт в отдельном контейнере
     
     * попробовать один из микросервисов на SOAP/GRPC сделать
-
+    * на django/flask другие микросервисы написать
+    
     2) связать их по HTTP
     3) а теперь связать их через Kafka
     

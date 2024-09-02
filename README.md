@@ -8,6 +8,11 @@
  - each file has **doc-string at top** - short summary
  - /docs, /redoc - auto docummentation for HTTP methods and schemas 
 
+# Admin page for external entities - database manipulation
+ - external entities: Tasks/Quests, StudentTasks/StudentQuests
+ - avaliable at: {API_URL}/admin
+ - bug_aware: do not use admin_page with internal entities CRUD-avaliable from frontend - it may give bugs (ex: student_count doesn`t change when adding new Student from admin_page)  
+
 # Frontend image
 https://hub.docker.com/repository/docker/albanec7/vr-pharmacy-client/general \
 tag for my backend: PATCHED_API_ADDR

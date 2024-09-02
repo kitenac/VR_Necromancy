@@ -1,7 +1,8 @@
 fastapi
-"fastapi[standard]" # for documentation run with "fastapi dev main.py"
+fastapi[standard] # for documentation run with "fastapi dev main.py"
 uvicorn
 sqlalchemy
 pymysql
 asyncmy  # for async mysql
 cryptography # establish qsl connection
+sqladmin # for cool admin page - eazy db management
