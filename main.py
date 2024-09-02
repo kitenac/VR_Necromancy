@@ -1,15 +1,25 @@
 '''
- - Server configuration 
 
+Project structure:
+
+0) main - HTTP-App configuration 
+
+1) routers (~mini-apps):
  - HTTP-app functions (parted into routerers from .routers):
    - HTTP methods for different resources 
    - HTTP parametrs extraction (body, query, Referer, path-params)
    - handling HTTP exceptionsgit 
-   - TODO: preserving HTTP response here (default status_code must be here for each method: like in DELETE methods)
-      - FIX: /search methods gets already formed API_Response => must inject status code
-
    
-CRUD: Core for vr_app`s HTTP methods` handlers
+2) CRUD: 
+  - Core for each vr_app`s router HTTP methods` handlers
+
+3) models - ORM
+
+4) schemas - data schema defenitions + auto validation - thanks to pydentic
+
+Additional apps:
+ 1) admin_page - CRUD through external entities
+
 '''
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +28,9 @@ import uvicorn
 
 import logging 
 from . import schemas # data schemas
-from .routers import groups, students, quests # like mini-apps  
+from .routers import groups, students, quests, progress, external # like mini-apps  
+from .admin_page import create_admin_page
+
 
 # ==== HTTP App configuration
 # Настройка логирования
@@ -38,12 +50,21 @@ CORS_conf = {
   'headers': ["*"]    # Accept, Content-Type, Referer, Content-Length ...
 }
 
+
+
+# Mount the admin page app to main app
+admin = create_admin_page(vr_app)
+vr_app.mount(app=admin, path='/admin')
+
 # URL prefixes handlers 
 # - like mini-apps for each url-prefix  (to manage app here we use @vr_app, inside routers - @router)
-vr_app.include_router(groups.router)    # for /groups/*
-vr_app.include_router(students.router)  # for /students/*
-vr_app.include_router(quests.router)    # for /quests/*
+vr_app.include_router(groups.router)    # for /groups*
+vr_app.include_router(students.router)  # for /students*
+vr_app.include_router(quests.router)    # for /quests*
+vr_app.include_router(progress.router)  # for /progress*
 
+# mocking endpoint [not needed anymore due we already have admin_page] - for data that must go from differenr service
+vr_app.include_router(external.router)  # for /external*
 
 # Добавим middleware для CORS
 vr_app.add_middleware(
@@ -67,6 +88,7 @@ async def http_exception_handler(request: Request, e: HTTPException):
           status=e.detail
         ).model_dump()
     )
+
 
 
 if __name__ == "__main__":

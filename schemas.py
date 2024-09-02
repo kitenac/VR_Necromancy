@@ -10,6 +10,7 @@ from typing import Dict, List, Optional # annotations for dictionaries
 from datetime import datetime
 from sqlalchemy import func
 
+
 # ======= Response =======
 # API response template
 class API_Response(BaseModel):
@@ -83,25 +84,52 @@ class Student(CommonTable):
 class Quest(CommonTable):
    name: str
 
-'''
-# Quest containing tables^
-class Task(BaseModel):
+
+# Each Quest contains tasks:
+class Task(CommonTable):
+    name: str
+    quest_id: str
+
+# Common Foreign Keys 
+class CommonFK(BaseModel):
+  quest_id: str
+  group_id: str
+  student_id: str
+
+# Quest session for student - each student has own Quest context (starts and ends at different time)
+class StudentQuest(CommonTable, CommonFK):
+  start_at: Optional[datetime] = None
+  end_at: Optional[datetime] = None
+
+# particular Task result in Quest session of particular Student
+class StudentTask(CommonTable, CommonFK):
+  student_quest_id: str
+  task_id: str
+  answer: bool
+  answered_at: Optional[datetime] = None
+
+
+# === Syntetic data schema for API-response, 
+# not real table, but an agregation of StudentQuests & StudentTasks
+
+# view of task for API response
+class TaskView(BaseModel):
    task_id: str
    task_name: str
    answer: bool
-   answered_at: str
+   answered_at: datetime  
 
-class StudentQuest(BaseModel):
-    id: str
-    student_full_name: str
-    quest_start_at: str
-    quest_end_at: str
-    quest_total_tasks_count: int
-    quest_true_answer_count: int
-    quest_false_answer_count: int
-    tasks: list[Task] # or task_map
-    student_id: str
-'''
+# view of particular Student`s progress on Quest - array of this items - is progress of group
+# all params are optional - bc they`re counting in few steps
+class StudentProgress(BaseModel):
+    student_id: str         = None
+    student_full_name: str  = None 
+    quest_start_at: Optional[datetime] = None
+    quest_end_at:     Optional[datetime] = None
+    quest_total_tasks_count: int  = None
+    quest_true_answer_count: int  = None
+    quest_false_answer_count: int = None
+    tasks: list[TaskView] = None
 
      
 # ==== HTTP methods data schemas

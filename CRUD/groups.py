@@ -17,11 +17,6 @@ async def create(db: Session, group: schemas.Group):
     return await create_core(db, el=db_group)
 
 async def delete(db: Session, id: str):
-    # first - delete all group`s students
-    group_students = db.query(models.Student).filter(models.Student.group_id == id).all()
-    await delete_core(db=db, del_elements=group_students, maby_empty=True)
-    
-    # only than delete the group (logical + constraint of PK-chainig group_id with students will not allow deletion otherwise)
     group = db.query(models.Group).filter(models.Group.id == id).first()
     return await delete_core(db=db, del_elements=[group], id=id)
 
