@@ -49,7 +49,7 @@ tag for my backend: PATCHED_API_ADDR
 - specify in db_config.py:\
 WORK_MODE = 'prod'\
 \- it`s needed to access db image when app is run as container itself\
-
+- then you can build new image: docker build -t <name>:<tag> .\
 ps in future will move this configuration - as arguement on start of module
 
 

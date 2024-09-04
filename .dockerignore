@@ -1,0 +1,41 @@
+# Ignore virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# my directory used for enviroment - libs
+myenv/
+
+# Ignore package management files
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# Ignore IDE and editor files
+.idea/
+.vscode/
+*.swp
+
+# Ignore configuration files
+.env
+*.env
+
+# Ignore version control files
+.git/
+.gitignore
+
+# Ignore Sphinx documentation build
+docs/_build/
