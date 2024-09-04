@@ -10,7 +10,17 @@ from .models import Base # all Tables from models inherits from it => can create
 
 
 # accessing DATABASE, TODO: export some params to .ENV:
-host, port = '127.0.0.1', '3306'
+
+# TODO: get this parametr as arg for module VR_Necromancy.main (requires creating separate function to create engine by given param and refactoring all files that uses engine)
+WORK_MODE = 'dev'  # dev - for development, prod - for creating image 
+
+# dev/prod hosts ips
+hosts = {
+    'dev': '127.0.0.1',        # for development
+    'prod': 'MySQL_Pet_PROD'   # when backend run as container | note: Docker`s internal DNS would resolve container`s ip by name of container
+}
+
+host, port = hosts[WORK_MODE], '3306'
 sql_vers, driver = 'mysql', 'pymysql'      
 usr, pwd = 'root', 'root'
 db_name = 'VR_Pharmacy_v2'

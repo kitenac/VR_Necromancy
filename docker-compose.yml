@@ -1,0 +1,46 @@
+version: '3.8'
+
+
+# create containers, bind`em to network "VR_NET"
+services:
+  MySQL_Pet_PROD:
+    image: mysql:latest
+    container_name: MySQL_Pet_PROD  # setup name to know exact name of container (backend container can access db container via it`s name - Docker`s DNS would resolve it to ip)
+    # password and database creation
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: VR_Pharmacy_v2
+    networks:
+      - VR_NET
+    
+    # check if database is already loaded | to prevent backend app to fail while DB is booting
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 15s
+      retries: 10
+    
+  
+  vr_back_PROD:
+    image: albanec7/vr_necromancy_back:latest
+    container_name: vr_back_PROD 
+    environment:
+      PORT: 8001
+
+    # portforwarding - host:docker: 8001 --> 8001
+    ports:
+      - "8001:8001"  
+    networks:
+      - VR_NET
+
+    # specify that our backend needs DB to be started before itself starts
+    depends_on:
+      MySQL_Pet_PROD:
+          condition: service_healthy # dependency is satistfied - when it`s in healthy status
+
+    # retry app if fallen (dodge if db is DOWN)
+    restart: always
+
+
+# create Network for containers 
+networks:
+  VR_NET:

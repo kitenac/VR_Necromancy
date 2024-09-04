@@ -4,6 +4,8 @@
 - ветка **async_pain** - асинхронная работа с бд (search/group, add/group - уже работают, сейчас проблема с использованием абстракции relation в students/add, мб заменю на явный запрос к БД)
 
 
+
+
 # Documentation:
  - each file has **doc-string at top** - short summary
  - /docs, /redoc - auto docummentation for HTTP methods and schemas 
@@ -12,13 +14,6 @@
  - external entities: Tasks/Quests, StudentTasks/StudentQuests
  - avaliable at: {API_URL}/admin
  - bug_aware: do not use admin_page with internal entities CRUD-avaliable from frontend - it may give bugs (ex: student_count doesn`t change when adding new Student from admin_page)  
-
-# Frontend image
-https://hub.docker.com/repository/docker/albanec7/vr-pharmacy-client/general \
-tag for my backend: PATCHED_API_ADDR
-
-- if u want to specify different src API - follow PATCH section in dockerhub repo above 
-
 
 # Limitations
 - OS: Linux-like:\
@@ -31,13 +26,32 @@ tag for my backend: PATCHED_API_ADDR
 
 - [recomended] <use venv>
 
-# Start server:
+# Frontend image
+https://hub.docker.com/repository/docker/albanec7/vr-pharmacy-client/general \
+tag for my backend: PATCHED_API_ADDR
+
+- if u want to specify different src API - follow PATCH section in dockerhub repo above 
+
+# Start backend server:
+
+## prod mode:
+- run: docker-compose up 
+
+## dev mode:
 - Linux (WSL) 
   from directory where module located run (-m - module):\
    python3 -m VR_Necromancy.main 
 
 - Windows:\
   serv is accessed via 127.0.0.1:8001 (after port forvarding)
+
+## image building mode:
+- specify in db_config.py:\
+WORK_MODE = 'prod'\
+\- it`s needed to access db image when app is run as container itself\
+
+ps in future will move this configuration - as arguement on start of module
+
 
 # Setup app
 Some data supposed to go from external service (todo)
