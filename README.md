@@ -1,11 +1,3 @@
-# Прогресс/План
-- план описан в ветке dev\
-в файле main.py - незакоменченным\
-- ветка **async_pain** - асинхронная работа с бд (search/group, add/group - уже работают, сейчас проблема с использованием абстракции relation в students/add, мб заменю на явный запрос к БД)
-
-
-
-
 # Documentation:
  - each file has **doc-string at top** - short summary
  - /docs, /redoc - auto docummentation for HTTP methods and schemas 
